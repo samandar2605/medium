@@ -23,8 +23,8 @@ func (h *handlerV1) GetCategory(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		fmt.Println("Error at GetCategory 1")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
@@ -63,8 +63,6 @@ func (h *handlerV1) CreateCategory(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Println("Error at CreateCategory 1")
-
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: err.Error(),
 		})
@@ -75,7 +73,6 @@ func (h *handlerV1) CreateCategory(c *gin.Context) {
 		Title: req.Title,
 	})
 	if err != nil {
-		fmt.Println("Error at CreateCategory 2")
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: err.Error(),
 		})
@@ -110,7 +107,9 @@ func (h *handlerV1) GetAllCategories(c *gin.Context) {
 		Search: req.Search,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -183,18 +182,16 @@ func (h *handlerV1) UpdateCategory(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&b)
 	if err != nil {
-		fmt.Println("Error at UpdateCategory 1")
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		fmt.Println("Error at UpdateCategory 2")
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
@@ -206,7 +203,6 @@ func (h *handlerV1) UpdateCategory(ctx *gin.Context) {
 	})
 	fmt.Println(category)
 	if err != nil {
-		fmt.Println("Error at UpdateCategory 3")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "failed to create category",
 		})
@@ -228,17 +224,15 @@ func (h *handlerV1) UpdateCategory(ctx *gin.Context) {
 func (h *handlerV1) DeleteCategory(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		fmt.Println("Error at DeleteCategory 1")
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
 
 	err = h.storage.Category().Delete(id)
 	if err != nil {
-		fmt.Println("Error at DeleteCategory 2")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "failed to Delete method",
 		})

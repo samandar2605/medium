@@ -10,6 +10,7 @@ type Config struct {
 	RedisConfig RedisConfig
 	HttpPort    string
 	SMTP        Smtp
+	SecretKey   string
 }
 
 type PostgresConfig struct {
@@ -31,7 +32,7 @@ type Smtp struct {
 }
 
 func Load(path string) Config {
-	gotenv.Load(".env")
+	gotenv.Load(path + "/.env")
 	Conf := viper.New()
 	Conf.AutomaticEnv()
 	cfg := Config{
@@ -51,6 +52,7 @@ func Load(path string) Config {
 			Sender:   Conf.GetString("SMTP_SENDER"),
 			Password: Conf.GetString("SMTP_PASSWORD"),
 		},
+		SecretKey: Conf.GetString("SECRET_KEY"),
 	}
 	return cfg
 }

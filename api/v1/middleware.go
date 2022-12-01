@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	emailPkg "github.com/post/pkg/email"
 	"github.com/post/pkg/utils"
 )
 
@@ -23,6 +24,8 @@ func (h *handlerV1) AuthMiddleware(c *gin.Context) {
 	}
 
 	payload, err := utils.VerifyToken(accessToken)
+
+
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
 		return
@@ -37,11 +40,38 @@ func (m *handlerV1) GetAuthPayload(ctx *gin.Context) (*utils.Payload, error) {
 	if !exists {
 		return nil, errors.New("kalla qo'yding")
 	}
-	
+
 	payload, ok := i.(*utils.Payload)
-	
+
 	if !ok {
 		return nil, errors.New("unknown user")
 	}
 	return payload, nil
-}	
+}
+
+func (h *handlerV1) sendVerificationCode(key, email string) error {
+	code, err := utils.GenerateRandomCode(6)
+	if err != nil {
+		return err
+	}
+
+	err = h.inMemory.SetWithTTL(key+email, code, 1)
+	if err != nil {
+		return err
+	}
+
+	err = emailPkg.SendEmail(h.cfg, &emailPkg.SendEmailRequest{
+		To:      []string{email},
+		Subject: "Verification email",
+		Body: map[string]string{
+			"code": code,
+		},
+		Type: emailPkg.VerificationEmail,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

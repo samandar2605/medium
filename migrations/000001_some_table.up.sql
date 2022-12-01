@@ -44,5 +44,6 @@ CREATE TABLE "likes"(
     "id" serial PRIMARY KEY,
     "post_id" INTEGER NOT NULL REFERENCES posts(id)ON DELETE CASCADE,
     "user_id" INTEGER NOT NULL REFERENCES users(id)ON DELETE CASCADE,
-    "status" VARCHAR(255) CHECK("status" IN('like','dislike')),
+    "status" BOOLEAN NOT NULL,
+    UNIQUE(post_id, user_id)
 );

@@ -8,17 +8,20 @@ import (
 	"github.com/post/config"
 )
 
-const SecretKey = "%r[(DfWOy2y~9bZ"
+var SecretKey = ""
+
+func GetSecretKey(key string){
+	SecretKey=key
+}
 
 type TokenParams struct {
-	UserID          int
-	UserType        string
-	FirstName       string
-	LastName        string
-	Username        string
-	Email           string
-	ProfileImageUrl string
-	Duration        time.Duration
+	UserID    int
+	UserType  string
+	FirstName string
+	LastName  string
+	Username  string
+	Email     string
+	Duration  time.Duration
 }
 
 // CreateToken creates a new token

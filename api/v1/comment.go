@@ -21,13 +21,17 @@ import (
 func (h *handlerV1) GetComment(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	resp, err := h.storage.Comment().Get(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -104,7 +108,7 @@ func (h *handlerV1) CreateComment(c *gin.Context) {
 			FirstName:       usr.FirstName,
 			LastName:        usr.LastName,
 			Email:           usr.Email,
-			ProfileImageUrl: &usr.ProfileImageUrl,
+			ProfileImageUrl: usr.ProfileImageUrl,
 		},
 	})
 }
@@ -121,7 +125,9 @@ func (h *handlerV1) CreateComment(c *gin.Context) {
 func (h *handlerV1) GetAllComment(c *gin.Context) {
 	req, err := commentsParams(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -133,11 +139,13 @@ func (h *handlerV1) GetAllComment(c *gin.Context) {
 		UserId:     req.UserID,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, commentsResponse(result))
+	c.JSON(http.StatusOK, commentsResponse(h, result))
 }
 
 func commentsParams(c *gin.Context) (*models.GetAllCommentsParams, error) {
@@ -191,14 +199,23 @@ func commentsParams(c *gin.Context) (*models.GetAllCommentsParams, error) {
 	}, nil
 }
 
-func commentsResponse(data *repo.GetAllCommentsResult) *models.GetAllCommentsResponse {
+func commentsResponse(h *handlerV1, data *repo.GetAllCommentsResult) *models.GetAllCommentsResponse {
 	response := models.GetAllCommentsResponse{
 		Comments: make([]*models.Comment, 0),
 		Count:    data.Count,
 	}
 
-	for _, post := range data.Comments {
-		p := parseCommentModel(post)
+	for _, comment := range data.Comments {
+		usr, _ := h.storage.User().GetUserProfileInfo(comment.UserId)
+		comment.User = repo.UserProfile{
+			Id:              comment.UserId,
+			FirstName:       usr.FirstName,
+			LastName:        usr.LastName,
+			Email:           usr.Email,
+			ProfileImageUrl: usr.ProfileImageUrl,
+		}
+
+		p := parseCommentModel(comment)
 		response.Comments = append(response.Comments, &p)
 	}
 
@@ -238,14 +255,16 @@ func (h *handlerV1) UpdateComment(ctx *gin.Context) {
 	var b models.UpdateComment
 	err := ctx.ShouldBindJSON(&b)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
@@ -256,11 +275,17 @@ func (h *handlerV1) UpdateComment(ctx *gin.Context) {
 		Description: b.Description,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
+	profil, _ := h.storage.User().GetUserProfileInfo(comment.UserId)
+	comment.User.Id = profil.Id
+	comment.User.FirstName = profil.FirstName
+	comment.User.LastName = profil.LastName
+	comment.User.Email = profil.Email
+	comment.User.ProfileImageUrl = profil.ProfileImageUrl
 
 	ctx.JSON(http.StatusOK, comment)
 }

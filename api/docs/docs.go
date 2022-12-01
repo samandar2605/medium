@@ -759,66 +759,13 @@ const docTemplate = `{
             }
         },
         "/likes": {
-            "get": {
-                "description": "Get all likes",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Like"
-                ],
-                "summary": "Get all likes",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "name": "limit",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "name": "post_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "name": "user_id",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.GetAllLikesResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a Likes",
+                "description": "Create or update like",
                 "consumes": [
                     "application/json"
                 ],
@@ -826,9 +773,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Like"
+                    "like"
                 ],
-                "summary": "Create a likes",
+                "summary": "Create or update like",
                 "parameters": [
                     {
                         "description": "like",
@@ -836,7 +783,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateLike"
+                            "$ref": "#/definitions/models.CreateOrUpdateLikeRequest"
                         }
                     }
                 ],
@@ -845,12 +792,6 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/models.Like"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
@@ -862,9 +803,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/likes/{id}": {
+        "/likes/user-post": {
             "get": {
-                "description": "Get Like by id",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get like by user and post",
                 "consumes": [
                     "application/json"
                 ],
@@ -872,15 +818,15 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Like"
+                    "like"
                 ],
-                "summary": "Get Like by id",
+                "summary": "Get like by user and post",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID",
-                        "name": "id",
-                        "in": "path",
+                        "description": "Post ID",
+                        "name": "post_id",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -891,91 +837,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.Like"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Update a likes",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Like"
-                ],
-                "summary": "Update a like",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "like",
-                        "name": "like",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.UpdateLike"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.Like"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete a like",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Like"
-                ],
-                "summary": "Delete a like",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1530,14 +1391,17 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateLike": {
+        "models.CreateOrUpdateLikeRequest": {
             "type": "object",
+            "required": [
+                "post_id"
+            ],
             "properties": {
                 "post_id": {
                     "type": "integer"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "boolean"
                 }
             }
         },
@@ -1649,20 +1513,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetAllLikesResponse": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "likes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Like"
-                    }
-                }
-            }
-        },
         "models.GetAllPostsResponse": {
             "type": "object",
             "properties": {
@@ -1712,7 +1562,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "user_id": {
                     "type": "integer"
@@ -1839,20 +1689,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.UpdateLike": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "post_id": {
-                    "type": "integer"
-                },
-                "status": {
                     "type": "string"
                 }
             }

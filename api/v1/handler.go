@@ -26,6 +26,7 @@ func New(options *HandlerV1Options) *handlerV1 {
 	}
 }
 
+
 func errorResponse(err error) *models.ErrorResponse {
 	return &models.ErrorResponse{
 		Error: err.Error(),

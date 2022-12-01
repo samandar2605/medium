@@ -9,11 +9,12 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/post/api"
 	"github.com/post/config"
+	"github.com/post/pkg/utils"
 	"github.com/post/storage"
 )
 
 func main() {
-	cfg := config.Load(".")
+	cfg := config.Load("")
 
 	psqlUrl := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.PostConfig.Host,
@@ -41,11 +42,12 @@ func main() {
 		InMemory: inMemory,
 	})
 
+	utils.GetSecretKey(cfg.SecretKey)
+
 	err = apiServer.Run(cfg.HttpPort)
 	if err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}
 
-	log.Print("Server stopped")
 	log.Print("Server stopped")
 }

@@ -21,20 +21,26 @@ import (
 func (h *handlerV1) GetPost(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	if err = h.storage.Post().ViewsInc(id); err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 	resp, err := h.storage.Post().Get(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
-
+	usr, _ := h.storage.User().GetUserProfileInfo(resp.UserId)
 	c.JSON(http.StatusOK, models.Post{
 		Id:          resp.Id,
 		Title:       resp.Title,
@@ -47,10 +53,10 @@ func (h *handlerV1) GetPost(c *gin.Context) {
 		CreatedAt:   resp.CreatedAt,
 		User: models.UserProfile{
 			Id:              resp.UserId,
-			FirstName:       resp.User.FirstName,
-			LastName:        resp.User.LastName,
-			Email:           resp.User.Email,
-			ProfileImageUrl: resp.User.ProfileImageUrl,
+			FirstName:       usr.FirstName,
+			LastName:        usr.LastName,
+			Email:           usr.Email,
+			ProfileImageUrl: usr.ProfileImageUrl,
 		},
 	})
 }
@@ -87,12 +93,20 @@ func (h *handlerV1) CreatePost(c *gin.Context) {
 		return
 	}
 
+	image, _ := h.storage.User().GetUserProfileInfo(usr.UserId)
 	resp, err := h.storage.Post().Create(&repo.Post{
 		Title:       req.Title,
 		Description: req.Description,
 		ImageUrl:    req.ImageUrl,
 		UserId:      usr.UserId,
 		CategoryId:  req.CategoryId,
+		User: repo.UserProfile{
+			Id:              usr.UserId,
+			FirstName:       usr.FirstName,
+			LastName:        usr.LastName,
+			Email:           usr.Email,
+			ProfileImageUrl:  image.ProfileImageUrl,
+		},
 	})
 
 	if err != nil {
@@ -112,6 +126,7 @@ func (h *handlerV1) CreatePost(c *gin.Context) {
 		ViewsCount:  resp.ViewsCount,
 		UpdatedAt:   resp.UpdatedAt,
 		CreatedAt:   resp.CreatedAt,
+		User:        models.UserProfile(resp.User),
 	})
 }
 
@@ -127,7 +142,9 @@ func (h *handlerV1) CreatePost(c *gin.Context) {
 func (h *handlerV1) GetAllPost(c *gin.Context) {
 	req, err := postsParams(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -138,11 +155,13 @@ func (h *handlerV1) GetAllPost(c *gin.Context) {
 		UserID:     req.UserID,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, postsResponse(result))
+	c.JSON(http.StatusOK, postsResponse(h, result))
 }
 
 func postsParams(c *gin.Context) (*models.GetAllPostsParams, error) {
@@ -189,13 +208,25 @@ func postsParams(c *gin.Context) (*models.GetAllPostsParams, error) {
 	}, nil
 }
 
-func postsResponse(data *repo.GetAllPostResult) *models.GetAllPostsResponse {
+func postsResponse(h *handlerV1, data *repo.GetAllPostResult) *models.GetAllPostsResponse {
 	response := models.GetAllPostsResponse{
 		Posts: make([]*models.Post, 0),
 		Count: data.Count,
 	}
 
 	for _, post := range data.Post {
+		usr, _ := h.storage.User().GetUserProfileInfo(post.UserId)
+		if err := h.storage.Post().ViewsInc(post.Id); err != nil {
+			return nil
+		}
+		post.User = repo.UserProfile{
+			Id:              post.UserId,
+			FirstName:       usr.FirstName,
+			LastName:        usr.LastName,
+			Email:           usr.Email,
+			ProfileImageUrl: usr.ProfileImageUrl,
+		}
+		post.ViewsCount++
 		p := parsePostModel(post)
 		response.Posts = append(response.Posts, &p)
 	}
@@ -204,6 +235,7 @@ func postsResponse(data *repo.GetAllPostResult) *models.GetAllPostsResponse {
 }
 
 func parsePostModel(post *repo.Post) models.Post {
+
 	return models.Post{
 		Id:          post.Id,
 		Title:       post.Title,
@@ -214,6 +246,13 @@ func parsePostModel(post *repo.Post) models.Post {
 		UpdatedAt:   post.UpdatedAt,
 		ViewsCount:  post.ViewsCount,
 		CreatedAt:   post.CreatedAt,
+		User: models.UserProfile{
+			Id:              post.UserId,
+			FirstName:       post.User.FirstName,
+			LastName:        post.User.LastName,
+			Email:           post.User.Email,
+			ProfileImageUrl: post.User.ProfileImageUrl,
+		},
 	}
 }
 
@@ -233,16 +272,16 @@ func (h *handlerV1) UpdatePost(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&b)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
@@ -266,11 +305,17 @@ func (h *handlerV1) UpdatePost(ctx *gin.Context) {
 		ViewsCount:  b.ViewsCount,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
+	profil, _ := h.storage.User().GetUserProfileInfo(post.UserId)
+	post.User.Id = profil.Id
+	post.User.FirstName = profil.FirstName
+	post.User.LastName = profil.LastName
+	post.User.Email = profil.Email
+	post.User.ProfileImageUrl = profil.ProfileImageUrl
 
 	ctx.JSON(http.StatusOK, post)
 }

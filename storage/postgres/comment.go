@@ -23,9 +23,8 @@ func (cr *commentRepo) Create(comment *repo.Comment) (*repo.Comment, error) {
 		INSERT INTO comments(
 			post_id,
 			user_id,
-			description,
-			created_at
-		) values ($1,$2,$3,$4)
+			description
+		) values ($1,$2,$3)
 		RETURNING
 			id,
 			created_at
@@ -35,7 +34,6 @@ func (cr *commentRepo) Create(comment *repo.Comment) (*repo.Comment, error) {
 		comment.PostId,
 		comment.UserId,
 		comment.Description,
-		time.Now(),
 	)
 	if err := result.Scan(
 		&comment.Id,
@@ -55,14 +53,13 @@ func (cr *commentRepo) Get(id int) (*repo.Comment, error) {
 			c.post_id,
 			c.description,
 			c.created_at,
-			c.updated_at,
 			u.first_name,
 			u.last_name,
 			u.email,
 			u.profile_image_url
 		FROM comments c
 		INNER JOIN users u ON u.id=c.user_id
-		where id=$1`
+		where c.id=$1`
 
 	result := cr.db.QueryRow(
 		query,
@@ -74,7 +71,6 @@ func (cr *commentRepo) Get(id int) (*repo.Comment, error) {
 		&Comment.UserId,
 		&Comment.Description,
 		&Comment.CreatedAt,
-		&Comment.UpdatedAt,
 		&Comment.User.FirstName,
 		&Comment.User.LastName,
 		&Comment.User.Email,
@@ -114,7 +110,6 @@ func (cr *commentRepo) GetAll(param repo.GetCommentQuery) (*repo.GetAllCommentsR
 			c.post_id,
 			c.description,
 			c.created_at,
-			c.updated_at,
 			u.first_name,
 			u.last_name,
 			u.email,

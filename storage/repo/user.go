@@ -30,7 +30,9 @@ type UserStorageI interface {
 	Update(usr *User) (*User, error)
 	Delete(id int) error
 	GetByEmail(email string) (*User, error)
+	CheckInfo(email, username string) (*User, error)
 	UpdatePassword(req *UpdatePassword) error
+	GetUserProfileInfo(usrId int) (*User, error)
 }
 
 type GetUserQuery struct {

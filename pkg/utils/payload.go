@@ -22,7 +22,7 @@ type Payload struct {
 	Username        string    `json:"username"`
 	LastName        string    `json:"last_name"`
 	Email           string    `json:"email"`
-	ProfileImageUrl string    `json:"profile_image_url"`
+	ProfileImageUrl *string    `json:"profile_image_url"`
 	IssuedAt        time.Time `json:"issued_at"`
 	ExpiredAt       time.Time `json:"expired_at"`
 }
@@ -38,6 +38,10 @@ func NewPayload(params *TokenParams) (*Payload, error) {
 		ID:        tokenID,
 		UserId:    params.UserID,
 		Email:     params.Email,
+		FirstName: params.FirstName,
+		LastName:  params.LastName,
+		UserType:  params.UserType,
+		Username:  params.Username,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(params.Duration),
 	}

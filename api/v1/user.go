@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/post/api/models"
+	"github.com/post/pkg/utils"
 	"github.com/post/storage/repo"
 )
 
@@ -72,6 +73,13 @@ func (h *handlerV1) CreateUser(c *gin.Context) {
 		})
 		return
 	}
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
+		return
+	}
 
 	resp, err := h.storage.User().Create(&repo.User{
 		FirstName:       req.FirstName,
@@ -80,7 +88,7 @@ func (h *handlerV1) CreateUser(c *gin.Context) {
 		Email:           req.Email,
 		Gender:          req.Gender,
 		UserName:        req.UserName,
-		Password:        req.Password,
+		Password:        hashedPassword,
 		ProfileImageUrl: req.ProfileImageUrl,
 		Type:            req.Type,
 	})
@@ -117,7 +125,9 @@ func (h *handlerV1) CreateUser(c *gin.Context) {
 func (h *handlerV1) GetAllUsers(c *gin.Context) {
 	req, err := usersParams(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 	result, err := h.storage.User().GetAll(repo.GetUserQuery{
@@ -127,7 +137,9 @@ func (h *handlerV1) GetAllUsers(c *gin.Context) {
 		SortByDate: req.SortByDate,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -216,16 +228,23 @@ func (h *handlerV1) UpdateUser(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
+		return
+	}
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
@@ -239,13 +258,13 @@ func (h *handlerV1) UpdateUser(ctx *gin.Context) {
 		Email:           req.Email,
 		Gender:          req.Gender,
 		UserName:        req.Username,
-		Password:        req.Password,
+		Password:        hashedPassword,
 		ProfileImageUrl: req.ProfileImageUrl,
 		Type:            req.Type,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
@@ -273,13 +292,13 @@ func (h *handlerV1) DeleteUser(ctx *gin.Context) {
 
 	err = h.storage.User().Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "successful delete method",
 	})
-	
+
 }

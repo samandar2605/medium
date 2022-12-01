@@ -18,7 +18,6 @@ var (
 
 func TestMain(m *testing.M) {
 	cfg := config.Load("./../..")
-
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.PostConfig.Host,
@@ -27,12 +26,14 @@ func TestMain(m *testing.M) {
 		cfg.PostConfig.Password,
 		cfg.PostConfig.Database,
 	)
+	fmt.Println(connStr)
 
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("failed to open connection: %v", err)
 	}
-
 	strg = storage.NewStoragePg(db)
+
 	os.Exit(m.Run())
+
 }

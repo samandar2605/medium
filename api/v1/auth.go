@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/post/api/models"
-	emailPkg "github.com/post/pkg/email"
 	"github.com/post/pkg/utils"
 	"github.com/post/storage/repo"
 )
@@ -44,11 +43,13 @@ func (h *handlerV1) Register(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
-	_, err = h.storage.User().GetByEmail(req.Email)
+	_, err = h.storage.User().CheckInfo(req.Email, req.Username)
 	if !errors.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusBadRequest, errorResponse(ErrEmailExists))
 		return
@@ -56,7 +57,9 @@ func (h *handlerV1) Register(c *gin.Context) {
 
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -71,13 +74,17 @@ func (h *handlerV1) Register(c *gin.Context) {
 
 	userData, err := json.Marshal(user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	err = h.inMemory.SetWithTTL("user_"+user.Email, string(userData), 10)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -91,33 +98,6 @@ func (h *handlerV1) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, models.ResponseOK{
 		Message: "Verification code has been sent!",
 	})
-}
-
-func (h *handlerV1) sendVerificationCode(key, email string) error {
-	code, err := utils.GenerateRandomCode(6)
-	if err != nil {
-		return err
-	}
-
-	err = h.inMemory.SetWithTTL(key+email, code, 1)
-	if err != nil {
-		return err
-	}
-
-	err = emailPkg.SendEmail(h.cfg, &emailPkg.SendEmailRequest{
-		To:      []string{email},
-		Subject: "Verification email",
-		Body: map[string]string{
-			"code": code,
-		},
-		Type: emailPkg.VerificationEmail,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // @Router /auth/verify [post]
@@ -136,20 +116,26 @@ func (h *handlerV1) Verify(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	userData, err := h.inMemory.Get("user_" + req.Email)
 	if err != nil {
-		c.JSON(http.StatusForbidden, errorResponse(err))
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	var user repo.User
 	err = json.Unmarshal([]byte(userData), &user)
 	if err != nil {
-		c.JSON(http.StatusForbidden, errorResponse(err))
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -166,22 +152,25 @@ func (h *handlerV1) Verify(c *gin.Context) {
 
 	result, err := h.storage.User().Create(&user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	token, _, err := utils.CreateToken(h.cfg, &utils.TokenParams{
-		UserID:          result.Id,
-		UserType:        result.Type,
-		FirstName:       result.FirstName,
-		LastName:        result.LastName,
-		Username:        result.UserName,
-		ProfileImageUrl: *result.ProfileImageUrl,
-		Email:           result.Email,
-		Duration:        time.Hour * 24,
+		UserID:    result.Id,
+		UserType:  result.Type,
+		FirstName: result.FirstName,
+		LastName:  result.LastName,
+		Username:  result.UserName,
+		Email:     result.Email,
+		Duration:  time.Hour * 24,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -189,6 +178,7 @@ func (h *handlerV1) Verify(c *gin.Context) {
 		ID:          result.Id,
 		FirstName:   result.FirstName,
 		LastName:    result.LastName,
+		Username:    result.UserName,
 		Email:       result.Email,
 		Type:        result.Type,
 		CreatedAt:   result.CreatedAt,
@@ -212,7 +202,9 @@ func (h *handlerV1) Login(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -223,7 +215,9 @@ func (h *handlerV1) Login(c *gin.Context) {
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -234,17 +228,18 @@ func (h *handlerV1) Login(c *gin.Context) {
 	}
 
 	token, _, err := utils.CreateToken(h.cfg, &utils.TokenParams{
-		UserID:          result.Id,
-		UserType:        result.Type,
-		FirstName:       result.FirstName,
-		LastName:        result.LastName,
-		Username:        result.UserName,
-		ProfileImageUrl: *result.ProfileImageUrl,
-		Email:           result.Email,
-		Duration:        time.Hour * 24,
+		UserID:    result.Id,
+		UserType:  result.Type,
+		FirstName: result.FirstName,
+		LastName:  result.LastName,
+		Username:  result.UserName,
+		Email:     result.Email,
+		Duration:  time.Hour * 24,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -253,6 +248,7 @@ func (h *handlerV1) Login(c *gin.Context) {
 		FirstName:   result.FirstName,
 		LastName:    result.LastName,
 		Email:       result.Email,
+		Username:    result.UserName,
 		Type:        result.Type,
 		CreatedAt:   result.CreatedAt,
 		AccessToken: token,
@@ -275,18 +271,24 @@ func (h *handlerV1) ForgotPassword(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	_, err = h.storage.User().GetByEmail(req.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, errorResponse(err))
+			c.JSON(http.StatusNotFound, models.ErrorResponse{
+				Error: err.Error(),
+			})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -318,7 +320,9 @@ func (h *handlerV1) VerifyForgotPassword(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -335,22 +339,25 @@ func (h *handlerV1) VerifyForgotPassword(c *gin.Context) {
 
 	result, err := h.storage.User().GetByEmail(req.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	token, _, err := utils.CreateToken(h.cfg, &utils.TokenParams{
-		UserID:          result.Id,
-		UserType:        result.Type,
-		FirstName:       result.FirstName,
-		LastName:        result.LastName,
-		Username:        result.UserName,
-		ProfileImageUrl: *result.ProfileImageUrl,
-		Email:           result.Email,
-		Duration:        time.Hour * 24,
+		UserID:    result.Id,
+		UserType:  result.Type,
+		FirstName: result.FirstName,
+		LastName:  result.LastName,
+		Username:  result.UserName,
+		Email:     result.Email,
+		Duration:  time.Hour * 24,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -359,6 +366,7 @@ func (h *handlerV1) VerifyForgotPassword(c *gin.Context) {
 		FirstName:   result.FirstName,
 		LastName:    result.LastName,
 		Email:       result.Email,
+		Username:    result.UserName,
 		Type:        result.Type,
 		CreatedAt:   result.CreatedAt,
 		AccessToken: token,
@@ -382,19 +390,25 @@ func (h *handlerV1) UpdatePassword(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	payload, err := h.GetAuthPayload(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -403,7 +417,9 @@ func (h *handlerV1) UpdatePassword(c *gin.Context) {
 		Password: hashedPassword,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error: err.Error(),
+		})
 		return
 	}
 

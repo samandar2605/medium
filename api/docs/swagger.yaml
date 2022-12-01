@@ -59,12 +59,14 @@ definitions:
       post_id:
         type: integer
     type: object
-  models.CreateLike:
+  models.CreateOrUpdateLikeRequest:
     properties:
       post_id:
         type: integer
       status:
-        type: string
+        type: boolean
+    required:
+    - post_id
     type: object
   models.CreatePost:
     properties:
@@ -142,15 +144,6 @@ definitions:
       count:
         type: integer
     type: object
-  models.GetAllLikesResponse:
-    properties:
-      count:
-        type: integer
-      likes:
-        items:
-          $ref: '#/definitions/models.Like'
-        type: array
-    type: object
   models.GetAllPostsResponse:
     properties:
       count:
@@ -183,7 +176,7 @@ definitions:
       post_id:
         type: integer
       status:
-        type: string
+        type: boolean
       user_id:
         type: integer
     type: object
@@ -272,15 +265,6 @@ definitions:
       post_id:
         type: integer
       updated_at:
-        type: string
-    type: object
-  models.UpdateLike:
-    properties:
-      id:
-        type: integer
-      post_id:
-        type: integer
-      status:
         type: string
     type: object
   models.UpdatePasswordRequest:
@@ -824,52 +808,17 @@ paths:
       tags:
       - file-upload
   /likes:
-    get:
-      consumes:
-      - application/json
-      description: Get all likes
-      parameters:
-      - default: 10
-        in: query
-        name: limit
-        required: true
-        type: integer
-      - default: 1
-        in: query
-        name: page
-        required: true
-        type: integer
-      - in: query
-        name: post_id
-        type: integer
-      - in: query
-        name: user_id
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.GetAllLikesResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      summary: Get all likes
-      tags:
-      - Like
     post:
       consumes:
       - application/json
-      description: Create a Likes
+      description: Create or update like
       parameters:
       - description: like
         in: body
         name: like
         required: true
         schema:
-          $ref: '#/definitions/models.CreateLike'
+          $ref: '#/definitions/models.CreateOrUpdateLikeRequest'
       produces:
       - application/json
       responses:
@@ -877,82 +826,26 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/models.Like'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Create a likes
+      summary: Create or update like
       tags:
-      - Like
-  /likes/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a like
-      parameters:
-      - description: ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - ApiKeyAuth: []
-      summary: Delete a like
-      tags:
-      - Like
+      - like
+  /likes/user-post:
     get:
       consumes:
       - application/json
-      description: Get Like by id
+      description: Get like by user and post
       parameters:
-      - description: ID
-        in: path
-        name: id
+      - description: Post ID
+        in: query
+        name: post_id
         required: true
         type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Like'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      summary: Get Like by id
-      tags:
-      - Like
-    put:
-      consumes:
-      - application/json
-      description: Update a likes
-      parameters:
-      - description: ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: like
-        in: body
-        name: like
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateLike'
       produces:
       - application/json
       responses:
@@ -966,9 +859,9 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Update a like
+      summary: Get like by user and post
       tags:
-      - Like
+      - like
   /posts:
     get:
       consumes:

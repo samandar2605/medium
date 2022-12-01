@@ -11,17 +11,17 @@ import (
 
 // @Security ApiKeyAuth
 // @Router /likes [post]
-// @Summary Create like
-// @Description Create like
+// @Summary Create or update like
+// @Description Create or update like
 // @Tags like
 // @Accept json
 // @Produce json
-// @Param like body models.CreateLikeRequest true "like"
+// @Param like body models.CreateOrUpdateLikeRequest true "like"
 // @Success 201 {object} models.Like
 // @Failure 500 {object} models.ErrorResponse
-func (h *handlerV1) CreateLike(c *gin.Context) {
+func (h *handlerV1) CreateOrUpdateLike(c *gin.Context) {
 	var (
-		req models.Like
+		req models.CreateOrUpdateLikeRequest
 	)
 
 	err := c.ShouldBindJSON(&req)
@@ -36,9 +36,9 @@ func (h *handlerV1) CreateLike(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.storage.Like().Create(&repo.Like{
+	err = h.storage.Like().CreateOrUpdate(&repo.Like{
 		UserID: int64(payload.UserId),
-		PostID: int64(req.PostId),
+		PostID: req.PostID,
 		Status: req.Status,
 	})
 	if err != nil {
@@ -46,11 +46,8 @@ func (h *handlerV1) CreateLike(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, models.Like{
-		Id:     int(resp.ID),
-		PostId: int(resp.PostID),
-		UserId: int(resp.UserID),
-		Status: resp.Status,
+	c.JSON(http.StatusOK, models.ResponseOK{
+		Message: "Successfully finished",
 	})
 }
 
@@ -84,9 +81,9 @@ func (h *handlerV1) GetLike(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.Like{
-		Id:     int(resp.ID),
-		PostId: int(resp.PostID),
-		UserId: int(resp.UserID),
+		ID:     resp.ID,
+		PostID: resp.PostID,
+		UserID: resp.UserID,
 		Status: resp.Status,
 	})
 }

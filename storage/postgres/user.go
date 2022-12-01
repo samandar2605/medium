@@ -267,3 +267,56 @@ func (ur *userRepo) UpdatePassword(req *repo.UpdatePassword) error {
 
 	return nil
 }
+
+func (ur *userRepo) CheckInfo(email, username string) (*repo.User, error) {
+	var result repo.User
+
+	query := `
+		SELECT
+			id,
+			first_name,
+			last_name,
+			email,
+			profile_image_url
+		FROM users
+		WHERE email=$1 or username=$2
+	`
+
+	row := ur.db.QueryRow(query, email, username)
+	err := row.Scan(
+		&result.ProfileImageUrl,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (ur *userRepo) GetUserProfileInfo(usrId int) (*repo.User, error) {
+	var result repo.User
+
+	query := `
+		SELECT
+			first_name,
+			last_name,
+			email,
+			profile_image_url
+		FROM users
+		WHERE id=$1
+	`
+
+	row := ur.db.QueryRow(query, usrId)
+	err := row.Scan(
+		&result.FirstName,
+		&result.LastName,
+		&result.Email,
+		&result.ProfileImageUrl,
+	)
+	if err != nil {
+		return nil, err
+	}
+	result.Id = usrId
+
+	return &result, nil
+}

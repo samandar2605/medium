@@ -45,7 +45,7 @@ func New(opt *RouterOptions) *gin.Engine {
 	apiV1.DELETE("/categories/:id", handlerV1.AuthMiddleware, handlerV1.DeleteCategory)
 
 	// Like
-	apiV1.POST("/likes", handlerV1.AuthMiddleware, handlerV1.CreateLike)
+	apiV1.POST("/likes", handlerV1.AuthMiddleware, handlerV1.CreateOrUpdateLike)
 	apiV1.GET("/likes/user-post", handlerV1.AuthMiddleware, handlerV1.GetLike)
 
 	// User
@@ -58,8 +58,8 @@ func New(opt *RouterOptions) *gin.Engine {
 	// Comment
 	apiV1.GET("/comments", handlerV1.GetAllComment)
 	apiV1.GET("/comments/:id", handlerV1.GetComment)
-	apiV1.POST("/comments", handlerV1.CreateComment)
-	apiV1.PUT("/comments/:id", handlerV1.UpdateComment)
+	apiV1.POST("/comments", handlerV1.AuthMiddleware, handlerV1.CreateComment)
+	apiV1.PUT("/comments/:id", handlerV1.AuthMiddleware, handlerV1.UpdateComment)
 	apiV1.DELETE("/comments/:id", handlerV1.AuthMiddleware, handlerV1.DeleteComment)
 
 	// Post
