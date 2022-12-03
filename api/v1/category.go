@@ -61,7 +61,18 @@ func (h *handlerV1) CreateCategory(c *gin.Context) {
 		req models.CreateCategory
 	)
 
-	err := c.ShouldBindJSON(&req)
+	payload, err := h.GetAuthPayload(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin {
+		c.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+
+	err = c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: err.Error(),
@@ -179,8 +190,18 @@ func parseCategoryModel(Category *repo.Category) models.Category {
 // @Router /categories/{id} [put]
 func (h *handlerV1) UpdateCategory(ctx *gin.Context) {
 	var b models.Category
+	payload, err := h.GetAuthPayload(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-	err := ctx.ShouldBindJSON(&b)
+	if payload.UserType != repo.UserTypeSuperadmin {
+		ctx.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+
+	err = ctx.ShouldBindJSON(&b)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: err.Error(),
@@ -228,6 +249,16 @@ func (h *handlerV1) DeleteCategory(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: err.Error(),
 		})
+		return
+	}
+	payload, err := h.GetAuthPayload(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin {
+		ctx.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
 		return
 	}
 

@@ -94,7 +94,7 @@ func (cr *commentRepo) GetAll(param repo.GetCommentQuery) (*repo.GetAllCommentsR
 	if param.PostId > 0 {
 		filter += fmt.Sprintf("where post_id=%d", param.PostId)
 	}
-	
+
 	if param.UserId > 0 {
 		if filter == "" {
 			filter += fmt.Sprintf("where user_id=%d", param.UserId)
@@ -191,6 +191,20 @@ func (cr *commentRepo) Delete(id int) error {
 	return nil
 }
 
+func (cr *commentRepo) GetUserInfo(id int) int {
+	var userId int
 
-
-
+	query := `
+		SELECT 
+			user_id
+		from comments
+		where id=$1
+	`
+	row := cr.db.QueryRow(query, id)
+	if err := row.Scan(
+		&userId,
+	); err != nil {
+		return -1
+	}
+	return userId
+}

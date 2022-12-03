@@ -5,7 +5,7 @@ run:
 	go run cmd/main.go
 
 
-DB_URL=postgresql://postgres:1@localhost:2605/blog?sslmode=disable
+DB_URL=postgresql://postgres:12345@localhost:5432/blog?sslmode=disable
 
 migrate_file:
 	migrate create -ext sql -dir migrations/ -seq alter_some_table

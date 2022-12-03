@@ -14,7 +14,7 @@ CREATE TABLE if not exists "users"(
     "password" VARCHAR(255) NOT NULL,
     "username" VARCHAR(255) NOT NULL UNIQUE,
     "profile_image_url" VARCHAR(255),
-    "type" VARCHAR(255)CHECK("type" IN('admin','user')) NOT NULL,
+    "type" VARCHAR(255)CHECK("type" IN('superadmin','user')) NOT NULL,
     "created_at" TIMESTAMP WITH TIME ZONE default current_timestamp
 );
 
@@ -30,7 +30,7 @@ CREATE TABLE if not exists "posts"(
     "views_count" INTEGER not NULL default 0
 );
 
-CREATE TABLE "comments"(
+CREATE TABLE if not exists "comments"(
     "id" serial PRIMARY KEY,
     "post_id" INTEGER NOT NULL REFERENCES posts(id)ON DELETE CASCADE,
     "user_id" INTEGER NOT NULL REFERENCES users(id)ON DELETE CASCADE,
@@ -40,7 +40,7 @@ CREATE TABLE "comments"(
 );
 
 
-CREATE TABLE "likes"(
+CREATE TABLE if not exists "likes"(
     "id" serial PRIMARY KEY,
     "post_id" INTEGER NOT NULL REFERENCES posts(id)ON DELETE CASCADE,
     "user_id" INTEGER NOT NULL REFERENCES users(id)ON DELETE CASCADE,

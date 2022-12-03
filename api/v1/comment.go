@@ -269,6 +269,18 @@ func (h *handlerV1) UpdateComment(ctx *gin.Context) {
 		return
 	}
 
+	payload, err := h.GetAuthPayload(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin || payload.UserId!= h.storage.Comment().GetUserInfo(id) {
+		ctx.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+
+
 	b.Id = id
 	comment, err := h.storage.Comment().Update(&repo.Comment{
 		Id:          b.Id,
@@ -305,6 +317,16 @@ func (h *handlerV1) DeleteComment(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "failed to convert",
 		})
+		return
+	}
+	payload, err := h.GetAuthPayload(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin || payload.UserId!= h.storage.Comment().GetUserInfo(id) {
+		ctx.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
 		return
 	}
 

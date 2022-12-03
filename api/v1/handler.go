@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"errors"
+
 	"github.com/post/config"
 	"github.com/post/storage"
 	"github.com/samandar2605/post/api/models"
@@ -26,6 +28,9 @@ func New(options *HandlerV1Options) *handlerV1 {
 	}
 }
 
+var (
+	ErrForbidden = errors.New("forbidden")
+)
 
 func errorResponse(err error) *models.ErrorResponse {
 	return &models.ErrorResponse{

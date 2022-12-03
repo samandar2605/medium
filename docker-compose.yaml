@@ -28,17 +28,24 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - SSLMODE=disable
+      - SSL=true
 
       - HTTP_PORT=${HTTP_PORT}
+
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
 
       - SMTP_SENDER=${SMTP_SENDER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
 
       - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - media:/app/media
     depends_on:
       - postgres
-      # - media:/app/media
     restart: always
 
 volumes:
   pgdata:
+  media:

@@ -235,7 +235,6 @@ func postsResponse(h *handlerV1, data *repo.GetAllPostResult) *models.GetAllPost
 }
 
 func parsePostModel(post *repo.Post) models.Post {
-
 	return models.Post{
 		Id:          post.Id,
 		Title:       post.Title,
@@ -286,11 +285,14 @@ func (h *handlerV1) UpdatePost(ctx *gin.Context) {
 		return
 	}
 
-	usr, err := h.GetAuthPayload(ctx)
+	payload, err := h.GetAuthPayload(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error: err.Error(),
-		})
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin || payload.UserId!= h.storage.Post().GetUserInfo(id) {
+		ctx.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
 		return
 	}
 
@@ -300,7 +302,7 @@ func (h *handlerV1) UpdatePost(ctx *gin.Context) {
 		Title:       b.Title,
 		Description: b.Description,
 		ImageUrl:    b.ImageUrl,
-		UserId:      usr.UserId,
+		UserId:      payload.UserId,
 		CategoryId:  b.CategoryId,
 		ViewsCount:  b.ViewsCount,
 	})
@@ -337,7 +339,17 @@ func (h *handlerV1) DeletePost(ctx *gin.Context) {
 		})
 		return
 	}
+	payload, err := h.GetAuthPayload(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
+	if payload.UserType != repo.UserTypeSuperadmin || payload.UserId!= h.storage.Post().GetUserInfo(id) {
+		ctx.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+	
 	err = h.storage.Post().Delete(id)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{

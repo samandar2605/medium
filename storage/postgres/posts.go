@@ -203,3 +203,21 @@ func (ur *postRepo) ViewsInc(id int) error {
 	}
 	return nil
 }
+
+func (pr *postRepo) GetUserInfo(id int) (int) {
+	var userId int
+
+	query := `
+		SELECT 
+			user_id
+		from posts
+		where id=$1
+	`
+	row := pr.db.QueryRow(query, id)
+	if err := row.Scan(
+		&userId,
+	); err != nil {
+		return -1
+	}
+	return userId
+}

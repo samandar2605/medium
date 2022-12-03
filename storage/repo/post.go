@@ -47,5 +47,6 @@ type PostStorageI interface {
 	GetAll(param GetPostQuery) (*GetAllPostResult, error)
 	Update(usr *Post) (*Post, error)
 	Delete(id int) error
+	GetUserInfo(id int) (int)
 	ViewsInc(id int) error
 }

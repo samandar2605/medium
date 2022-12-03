@@ -32,5 +32,6 @@ type CommentStorageI interface {
 	Get(id int) (*Comment, error)
 	GetAll(param GetCommentQuery) (*GetAllCommentsResult, error)
 	Update(cr *Comment) (*Comment, error)
+	GetUserInfo(id int) (int)
 	Delete(id int) error
 }

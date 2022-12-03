@@ -1,0 +1,2 @@
+INSERT INTO users(first_name, last_name, email,username, password, type)
+VALUES('Samandar', 'To`xtayev', 'samandarukan265@gmail.com', 'admin','$2a$10$4/PT9SoLMMgf60k.QcZj8OZ.ynJxSeHDPVVQdjmp.dvJ31EMUJjUa', 'superadmin')
